@@ -123,6 +123,28 @@ Vercel no usa Docker ni `compose`: cada archivo de `api/` se publica como
 función serverless y `public/` se sirve como estático. La configuración está
 en `vercel.json` y no hace falta paso de build.
 
+`vercel.json` usa `builds` en vez de la autodetección a propósito. Con
+autodetección, Vercel puede llegar a tratar los `.js` de `public/` como
+funciones y ejecutarlos en Node, donde `document` no existe:
+
+```
+ReferenceError: document is not defined
+    at /var/task/public/app.mjs:6:13
+```
+
+Declarar `builds` apaga toda la inferencia y fija qué es función
+(`api/*.js` con `@vercel/node`) y qué es estático (`public/**` con
+`@vercel/static`), sin depender de lo que digan los ajustes del proyecto en
+el dashboard. El `excludeFiles` además deja el bundle de la función en ~56 KB:
+sin él se cuela `data/cache.json` con 2,4 MB de datos viejos.
+
+Para verificar el deploy sin publicarlo:
+
+```bash
+vercel build        # genera .vercel/output
+find .vercel/output/functions -name '*.func'   # deberían ser SÓLO las de api/
+```
+
 ```bash
 npm i -g vercel
 vercel          # primer deploy (preview)

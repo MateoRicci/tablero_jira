@@ -1,27 +1,51 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "outputDirectory": "public",
-  "functions": {
-    "api/*.js": {
-      "memory": 512,
-      "maxDuration": 30
-    }
-  },
-  "headers": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "private, no-store" },
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
-      ]
+      "src": "api/*.js",
+      "use": "@vercel/node",
+      "config": { "excludeFiles": "{data/**,public/**,api.json,*.log}" }
     },
     {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "no-referrer" },
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
-      ]
+      "src": "public/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/board",
+      "dest": "/api/board.js",
+      "headers": {
+        "Cache-Control": "private, no-store",
+        "X-Robots-Tag": "noindex, nofollow"
+      }
+    },
+    {
+      "src": "/api/auth",
+      "dest": "/api/auth.js",
+      "headers": {
+        "Cache-Control": "private, no-store",
+        "X-Robots-Tag": "noindex, nofollow"
+      }
+    },
+    {
+      "src": "/",
+      "dest": "/public/index.html",
+      "headers": {
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "no-referrer",
+        "X-Robots-Tag": "noindex, nofollow"
+      }
+    },
+    {
+      "src": "/(.+)",
+      "dest": "/public/$1",
+      "headers": {
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "no-referrer",
+        "X-Robots-Tag": "noindex, nofollow"
+      }
     }
   ]
 }
