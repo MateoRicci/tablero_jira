@@ -196,7 +196,7 @@ main { max-width: var(--maxw); margin: 0 auto; padding: calc(var(--step) * 4) ca
 .band__head h2 { font-size: 15px; letter-spacing: -0.01em; }
 .band__head .eyebrow { margin-left: auto; }
 
-.grid { display: grid; gap: calc(var(--step) * 2); grid-template-columns: repeat(12, 1fr); }
+.grid { display: grid; gap: calc(var(--step) * 2); grid-template-columns: repeat(12, minmax(0, 1fr)); }
 .col-4 { grid-column: span 4; }
 .col-5 { grid-column: span 5; }
 .col-6 { grid-column: span 6; }
@@ -600,3 +600,84 @@ td.truncate { max-width: 340px; overflow: hidden; text-overflow: ellipsis; }
 }
 .login input:focus-visible { outline: 2px solid var(--s1); outline-offset: 1px; }
 .login__error { margin: 0; font-size: 12.5px; color: var(--critical); }
+
+/* ── Celular ───────────────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  body { font-size: 14.5px; }
+
+  /* La cabecera es sticky: en pantalla chica no puede comerse tres renglones. */
+  .top { padding: 10px 16px; gap: 8px 12px; }
+  .top__brand { font-size: 15px; }
+  .top__brand span { display: none; }
+  .top__spacer { display: none; }
+  .clock { order: 3; width: 100%; font-size: 11px; }
+  .live { order: 2; margin-left: auto; padding: 3px 6px; }
+  #refresh { order: 2; padding: 4px 9px; }
+
+  main { padding: 20px 16px 56px; }
+  .band { margin-top: 32px; }
+  .grid, .kpis { gap: 10px; }
+
+  .thesis { padding: 20px 18px; gap: 16px; }
+  .thesis h1 { font-size: 25px; }
+  .thesis p { font-size: 14px; }
+  .hero-figure__value { font-size: 62px; }
+
+  .card { padding: 14px; gap: 10px; }
+  .kpi { padding: 14px; }
+  .kpi__value { font-size: 26px; }
+
+  /* Filtros: una fila que se desliza, en vez de cuatro renglones de chips. */
+  .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    margin: 0 -14px;
+    padding-inline: 14px;
+  }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: none; }
+  .tree__bar { gap: 8px; }
+
+  /* El kanban se desliza de costado, como en Jira o Trello. */
+  .board {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 78%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    margin: 0 -14px;
+    padding-inline: 14px;
+    scrollbar-width: none;
+  }
+  .board::-webkit-scrollbar { display: none; }
+  .board__col { scroll-snap-align: start; }
+  .board__cards { max-height: clamp(300px, 58vh, 560px); }
+
+  .tree__scroll { margin: 0 -14px; padding-inline: 14px; border-radius: 0; }
+  .table-wrap { margin: 0 -14px; border-radius: 0; max-height: 440px; }
+
+  .legend { gap: 8px 14px; font-size: 11.5px; }
+  .chain__link { grid-template-columns: 26px 1fr auto; }
+  .alert { grid-template-columns: auto 1fr auto; row-gap: 4px; }
+  .alert__bar { display: none; }
+  .flow-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* El nombre va en su propio renglón: si comparte fila con el conteo y la
+     píldora, se corta en "santiag…" y deja de servir. */
+  .roster__row { padding: 10px; flex-wrap: wrap; row-gap: 4px; }
+  .roster__name { flex: 1 0 100%; }
+  .alert { grid-template-columns: auto 1fr; }
+  .alert > .pill { grid-column: 2; justify-self: start; }
+
+  /* Objetivos táctiles: nada accionable por debajo de ~34px de alto. */
+  button, .chip { min-height: 34px; }
+}
+
+@media (max-width: 400px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .thesis h1 { font-size: 22px; }
+  .hero-figure__value { font-size: 54px; }
+  .board { grid-auto-columns: 85%; }
+}

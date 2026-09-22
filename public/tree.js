@@ -8,7 +8,14 @@
 
 import { svg, el, text, bindTip, cssVar } from "./charts.js";
 
-const NODE_W = 108, NODE_H = 28, COL = 158, ROW = 38, PAD = 26;
+// En pantalla chica el grafo se compacta: con nodos de 108px entraban tres
+// por pantalla y el árbol dejaba de leerse como árbol.
+const MOVIL = typeof window !== "undefined" && window.innerWidth <= 760;
+const NODE_W = MOVIL ? 74 : 108;
+const NODE_H = MOVIL ? 24 : 28;
+const COL = MOVIL ? 104 : 158;
+const ROW = MOVIL ? 30 : 38;
+const PAD = MOVIL ? 14 : 26;
 const fmtDur = (hrs) => {
   if (hrs === null || hrs === undefined) return "—";
   if (hrs < 1) return `${Math.round(hrs * 60)} min`;
@@ -133,8 +140,8 @@ export function dependencyTree(metrics, state, onFilterChange) {
   for (const n of nodes) {
     const group = el("g", { class: "tree__node", tabindex: 0, role: "button" });
     const box = el("rect", { x: n.x, y: n.y, width: NODE_W, height: NODE_H, rx: 6, "stroke-width": 1.5 });
-    const key = text(n.key, { x: n.x + 9, y: n.y + NODE_H / 2 + 4, "font-family": "var(--mono)", "font-size": 11 });
-    const pts = text(`${n.points}`, { x: n.x + NODE_W - 9, y: n.y + NODE_H / 2 + 4, "text-anchor": "end", "font-size": 10.5, class: "tick" });
+    const key = text(n.key, { x: n.x + (MOVIL ? 6 : 9), y: n.y + NODE_H / 2 + 4, "font-family": "var(--mono)", "font-size": MOVIL ? 9.5 : 11 });
+    const pts = text(`${n.points}`, { x: n.x + NODE_W - (MOVIL ? 6 : 9), y: n.y + NODE_H / 2 + 4, "text-anchor": "end", "font-size": MOVIL ? 9 : 10.5, class: "tick" });
     group.append(box, key, pts);
 
     // Vencido / por vencer: se marca con un punto en la esquina. Es forma y

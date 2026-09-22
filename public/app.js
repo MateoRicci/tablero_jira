@@ -20,6 +20,30 @@ function rerender() {
   window.scrollTo({ top: y, behavior: "instant" });
 }
 
+const MOVIL_BP = 760;
+export const esMovil = () => window.innerWidth <= MOVIL_BP;
+
+/**
+ * Ancho al que construir un gráfico. Los SVG se escalaban a 100% desde un
+ * viewBox fijo de ~620px: en un celular eso encoge el texto de 11px a 6px.
+ * Construirlos al ancho real del contenedor evita el escalado.
+ */
+function chartW(max, span = 12) {
+  const ancho = window.innerWidth || 1440;
+  if (esMovil() || ancho <= 1020) {
+    // Una tarjeta por fila: el gráfico ocupa el ancho de pantalla menos padding.
+    return Math.max(250, Math.min(max, ancho - 32 - 28));
+  }
+  // Escritorio: la tarjeta ocupa `span` de 12 columnas con 16px de separación.
+  const contenido = Math.min(1320, ancho - 48);
+  const columna = (contenido - 11 * 16) / 12;
+  const tarjeta = columna * span + 16 * (span - 1);
+  return Math.max(250, Math.min(max, Math.round(tarjeta - 40)));
+}
+
+/** En pantallas chicas, nombre de pila: "Lautaro Gastón Peralta" no entra. */
+const nombreCorto = (n) => (esMovil() ? first(n) : n);
+
 const fmt = (n, d = 0) => Number(n).toLocaleString("es-AR", { minimumFractionDigits: d, maximumFractionDigits: d });
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 const first = (name) => (name || "").split(/[\s.]/)[0];
@@ -142,7 +166,7 @@ function renderKpis(m) {
 function burndown(m) {
   const data = m.burndown;
   if (!data.length) return h("p", { class: "card__note" }, "Sin sprint activo.");
-  const W = 620, H = 235, P = { t: 16, r: 46, b: 30, l: 44 };
+  const W = chartW(840, 8), H = esMovil() ? 200 : 235, P = { t: 16, r: 46, b: 30, l: 38 };
   const maxY = Math.max(...data.map((d) => Math.max(d.ideal, d.actual ?? 0)));
   const ticks = niceTicks(maxY);
   const yMax = ticks[ticks.length - 1];
@@ -199,7 +223,7 @@ function flow(m) {
     return h("p", { class: "card__note" },
       `Necesita al menos dos días de historial. Hoy hay ${m.flow.length}: el gráfico se dibuja solo a partir de mañana.`);
   }
-  const W = 620, H = 240, P = { t: 14, r: 16, b: 30, l: 36 };
+  const W = chartW(430, 4), H = esMovil() ? 200 : 240, P = { t: 14, r: 16, b: 30, l: 32 };
   const total = m.totals.sprintTickets;
   const x = scale(0, m.flow.length - 1, P.l, W - P.r);
   const y = scale(0, total, H - P.b, P.t);
@@ -230,7 +254,7 @@ function flow(m) {
 // ── Carga por persona ─────────────────────────────────────────────────────
 function loadByPerson(m) {
   const rows = m.people.filter((p) => p.total > 0);
-  const W = 620, P = { t: 6, r: 108, b: 26, l: 122 };
+  const W = chartW(730, 7), P = { t: 6, r: esMovil() ? 82 : 108, b: 26, l: esMovil() ? 66 : 122 };
   const rowH = 30, H = P.t + rows.length * rowH + P.b;
   const maxX = Math.max(...rows.map((p) => p.totalPoints));
   const ticks = niceTicks(maxX);
@@ -247,7 +271,7 @@ function loadByPerson(m) {
     const cy = P.t + i * rowH + rowH / 2;
     const bh = Math.min(BAR_MAX, rowH - 8);
     const yTop = cy - bh / 2;
-    g.appendChild(text(p.name, { class: "label-ink", x: P.l - 10, y: cy + 4, "text-anchor": "end" }));
+    g.appendChild(text(nombreCorto(p.name), { class: "label-ink", x: P.l - 10, y: cy + 4, "text-anchor": "end" }));
 
     let cursor = x(0);
     const segs = m.flowOrder.filter((n) => p.points[n] > 0);
@@ -281,7 +305,7 @@ function avgTicketSize(m) {
     .filter((p) => p.total > 0)
     .map((p) => ({ ...p, avg: p.totalPoints / p.total }))
     .sort((a, b) => b.avg - a.avg);
-  const W = 560, P = { t: 6, r: 104, b: 28, l: 132 };
+  const W = chartW(520, 5), P = { t: 6, r: esMovil() ? 80 : 104, b: 28, l: esMovil() ? 66 : 132 };
   const rowH = 30, H = P.t + rows.length * rowH + P.b;
   const ticks = niceTicks(Math.max(...rows.map((r) => r.avg)));
   const x = scale(0, ticks.at(-1), P.l, W - P.r);
@@ -299,7 +323,7 @@ function avgTicketSize(m) {
     bar.setAttribute("tabindex", "0");
     bindTip(bar, `<b>${esc(r.name)}</b><br>${r.total} tickets para ${fmt(r.totalPoints)} pts<br>Ticket promedio: ${r.avg.toFixed(1)} pts`);
     g.appendChild(bar);
-    g.appendChild(text(r.name, { class: "label-ink", x: P.l - 10, y: cy + 4, "text-anchor": "end" }));
+    g.appendChild(text(nombreCorto(r.name), { class: "label-ink", x: P.l - 10, y: cy + 4, "text-anchor": "end" }));
     g.appendChild(text(`${r.avg.toFixed(1)} pts`, { class: "value", x: x(r.avg) + 8, y: cy + 4 }));
     g.appendChild(text(`${r.total} tk`, { class: "tick", x: W - 2, y: cy + 4, "text-anchor": "end" }));
   });
@@ -396,9 +420,11 @@ function reviewMatrix(m) {
   if (!devs.length) return h("p", { class: "card__note" }, "Sin datos de revisión todavía.");
   const lookup = new Map(m.devReviewer.map((d) => [`${d.dev}|${d.reviewer}`, d.count]));
   const max = Math.max(...m.devReviewer.map((d) => d.count));
-  const cell = 34, P = { t: 76, l: 104 };
+  const cell = esMovil() ? 30 : 34, P = { t: esMovil() ? 64 : 76, l: esMovil() ? 70 : 104 };
   const W = P.l + revs.length * cell + 12, H = P.t + devs.length * cell + 12;
   const g = svg(W, H);
+  // Ancho natural: estirarla al 100% agrandaba el texto hasta 2x.
+  g.style.maxWidth = `${W}px`;
   const ramp = ["--q0", "--q1", "--q2", "--q3", "--q4", "--q5"];
 
   revs.forEach((r, j) => {
@@ -434,7 +460,7 @@ function reviewMatrix(m) {
 // ── Cascada de dependencias ───────────────────────────────────────────────
 function levelsChart(m) {
   const rows = m.levels;
-  const W = 620, H = 250, P = { t: 22, r: 16, b: 44, l: 40 };
+  const W = chartW(1260, 12), H = esMovil() ? 210 : 250, P = { t: 22, r: 12, b: 44, l: 34 };
   const max = Math.max(...rows.map((r) => r.tickets));
   const ticks = niceTicks(max);
   const y = scale(0, ticks.at(-1), H - P.b, P.t);
@@ -465,7 +491,7 @@ function levelsChart(m) {
 // ── Top bloqueantes ───────────────────────────────────────────────────────
 function blockersChart(m) {
   const rows = m.blockers.slice(0, 8);
-  const W = 620, P = { t: 4, r: 82, b: 24, l: 78 };
+  const W = chartW(730, 7), P = { t: 4, r: esMovil() ? 62 : 82, b: 24, l: 70 };
   const rowH = 27, H = P.t + rows.length * rowH + P.b;
   const ticks = niceTicks(Math.max(...rows.map((r) => r.unlocksPoints)));
   const x = scale(0, ticks.at(-1), P.l, W - P.r);
@@ -523,7 +549,7 @@ function startableRoster(m) {
 // ── Épicas ────────────────────────────────────────────────────────────────
 function epicsChart(m) {
   const rows = m.epics.slice(0, 12);
-  const W = 620, P = { t: 4, r: 64, b: 22, l: 190 };
+  const W = chartW(1260, 12), P = { t: 4, r: esMovil() ? 54 : 64, b: 22, l: esMovil() ? 108 : 190 };
   const rowH = 26, H = P.t + rows.length * rowH + P.b;
   const ticks = niceTicks(Math.max(...rows.map((r) => r.points)));
   const x = scale(0, ticks.at(-1), P.l, W - P.r);
@@ -552,7 +578,8 @@ function epicsChart(m) {
       g.appendChild(node);
       cursor += w;
     });
-    const label = r.name.length > 26 ? r.name.slice(0, 25) + "…" : r.name;
+    const tope = esMovil() ? 13 : 26;
+    const label = r.name.length > tope ? r.name.slice(0, tope - 1) + "…" : r.name;
     const t = text(label, { class: "label-ink", x: P.l - 10, y: cy + 4, "text-anchor": "end", tabindex: 0 });
     bindTip(t, `<b>${esc(r.name)}</b><br>${r.tickets} tickets · ${fmt(r.points)} pts · ${r.pct}% hecho`);
     g.appendChild(t);
@@ -833,4 +860,17 @@ document.addEventListener("visibilitychange", () => {
 });
 
 setInterval(tickAge, 1000);
+
+// Los gráficos se construyen al ancho del viewport, así que un cambio de
+// ancho (rotar el teléfono) pide redibujarlos. Sólo si el ancho cambió de
+// verdad: en iOS la barra de direcciones dispara resize al hacer scroll.
+let anchoPrevio = window.innerWidth;
+let reajuste = null;
+window.addEventListener("resize", () => {
+  if (window.innerWidth === anchoPrevio) return;
+  anchoPrevio = window.innerWidth;
+  clearTimeout(reajuste);
+  reajuste = setTimeout(rerender, 180);
+});
+
 load();

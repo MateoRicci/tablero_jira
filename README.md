@@ -95,6 +95,34 @@ Las horas son hábiles, con jornada de 9:00 a 21:00 todos los días (`WORKDAY`).
 Todo eso —presupuestos, factores, umbrales y jornada— se cambia en un solo
 lugar: el encabezado de `lib/sla.js`.
 
+## En el celular
+
+El tablero funciona en pantalla chica sin recortar nada — mismas bandas, mismos
+datos. Lo que cambia:
+
+- **Los gráficos se construyen al ancho real de la pantalla.** Antes tenían un
+  `viewBox` fijo de ~620 px escalado al 100 %: en un celular de 390 px eso
+  encogía el texto de 11 px a 6 px. Ahora `chartW()` calcula el ancho de la
+  tarjeta (según su columna en escritorio, según el viewport en móvil) y el SVG
+  sale 1:1. De paso se arreglaron los gráficos de ancho completo en escritorio,
+  que se estiraban al doble.
+- **El kanban se desliza de costado**, con `scroll-snap` por columna, como
+  Trello o el Jira móvil. Apilarlo daba cuatro listas de 79 tarjetas.
+- **El árbol se compacta** (nodos de 74 px en vez de 108): entran tres columnas
+  por pantalla en vez de tres nodos, y los verdes quedan donde aterrizás.
+- **Los filtros por persona se deslizan** en una sola fila en vez de ocupar
+  cuatro renglones.
+- Los nombres se acortan a nombre de pila en los ejes, pero **nunca se recortan
+  con puntos suspensivos** en las listas: ahí van en su propio renglón.
+- Rotar el teléfono redibuja los gráficos al ancho nuevo (con debounce, porque
+  en iOS la barra de direcciones dispara `resize` al scrollear).
+
+Al tacto no hay hover, así que **tocar un nodo del árbol fija su cascada**
+(el mismo gesto que el clic en escritorio) y "Soltar selección" la libera.
+
+Verificado a 360, 390, 768 y 1440 px: sin scroll horizontal, sin texto
+recortado y con todos los SVG a escala 1:1.
+
 ## Refresco
 
 El tablero se actualiza **solo cada 60 segundos**. El indicador de la cabecera
