@@ -1,0 +1,5 @@
+# El spec de la API de Jira son 2,4 MB de documentación: no hace falta en el deploy.
+api.json
+data/
+.env
+*.log
