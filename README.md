@@ -70,24 +70,28 @@ ticket tiene un presupuesto de horas hábiles según sus story points:
 | 5 | un par de días (16 h) |
 | 8 | una semana (40 h) |
 
-**El reloj se reinicia en cada transición**: mide cuánto lleva el ticket en el
-estado donde está ahora, no desde que se creó. Un ticket que pasa de
-In Progress a In Review empieza de cero con el presupuesto completo otra vez.
+**El reloj arranca en In Progress.** Mientras el ticket está en To Do no se
+mide nada contra presupuesto: nadie lo agarró todavía, así que no puede estar
+vencido por más que lleve semanas en la cola. Lo único que se informa de To Do
+es hace cuánto espera, como dato gris y sin porcentaje.
+
+Una vez que arranca, **el reloj no se reinicia**: pasar de In Progress a
+In Review sigue contando desde el mismo momento. Lo que se mide es cuánto lleva
+el ticket abierto en manos del equipo, no cuánto lleva en la casilla de hoy.
 
 Ese presupuesto se ajusta por estado con `STATE_FACTOR`:
 
-- **In Progress ×1** y **In Review ×1** — mismo presupuesto, reseteado en cada
-  transición.
-- **To Do ×6** — esperar tolera mucho más: un ticket de 1 punto avisa recién
-  tras un día hábil sin que nadie lo tome. Con un factor más bajo, todo el
-  backlog chico se pone amarillo al cerrar el primer día del sprint.
-  **Este es el número a tocar si el semáforo avisa de más o de menos.**
+- **In Progress ×1** — el presupuesto base, tal cual.
+- **In Review ×1,5** — como el reloj no se reinicia, revisar suma medio
+  presupuesto más sobre el de construir.
+- **To Do** no figura: sin reloj no hay presupuesto que consumir.
+  **`STATE_FACTOR` es el número a tocar si el semáforo avisa de más o de menos.**
 
 Dos reglas que evitan las falsas alarmas:
 
-1. **A un ticket bloqueado no le corre el reloj.** Su reloj de To Do arranca
-   cuando se cierra su último bloqueante, no cuando se creó — si espera una
-   dependencia, la demora no es del equipo.
+1. **A un ticket que no arrancó no le corre el reloj**, y a uno bloqueado ni
+   siquiera se le cuenta la espera — si depende de otro, la demora no es del
+   equipo.
 2. **Se avisa al 80 %** del presupuesto (*por vencer*) y **se marca vencido al
    pasar el 100 %**.
 

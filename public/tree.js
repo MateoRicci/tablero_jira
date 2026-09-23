@@ -156,10 +156,14 @@ export function dependencyTree(metrics, state, onFilterChange) {
     }
 
     const blockers = preds.get(n.key);
+    // El reloj arranca en In Progress: en To Do se informa la espera, sin %.
     const reloj =
       n.severity === "blocked" ? "Sin reloj: espera una dependencia"
-      : n.age === null ? ""
-      : `Lleva <b>${fmtDur(n.age)}</b> en ${esc(n.status)} de <b>${fmtDur(n.budget)}</b> (${Math.round(n.ratio * 100)}%)`;
+      : n.ratio !== null
+        ? `Lleva <b>${fmtDur(n.age)}</b> trabajándose de <b>${fmtDur(n.budget)}</b> (${Math.round(n.ratio * 100)}%)`
+      : n.age !== null ? `Lleva <b>${fmtDur(n.age)}</b> trabajándose (sin estimar)`
+      : n.waiting !== null ? `Sin arrancar: espera hace <b>${fmtDur(n.waiting)}</b>`
+      : "";
     bindTip(group,
       `<b>${esc(n.key)}</b> · ${esc(n.summary)}<br>` +
       `${esc(n.assignee)} · ${n.points} pts · ${esc(n.status)}<br>` +

@@ -87,19 +87,28 @@ function card(t, byKey) {
   // en curso no hace falta arrancarlo.
   const libre = t.bucket === "todo" && t.severity !== "blocked" && !pendientes.length;
 
+  // El reloj sólo corre desde In Progress. En To Do mostramos la espera como
+  // dato gris, sin porcentaje: un ticket que nadie agarró no puede estar vencido.
   const reloj =
-    t.severity === "blocked" || t.ratio === null
-      ? null
-      : h("span", { class: `pill ${SEV_CLASS[t.severity] || ""}` }, [
+    t.severity === "blocked" ? null
+    : t.ratio !== null
+      ? h("span", { class: `pill ${SEV_CLASS[t.severity] || ""}` }, [
           h("span", { class: "pill__dot" }),
           `${dur(t.age)} · ${Math.round(t.ratio * 100)}%`,
-        ]);
+        ])
+    : t.age !== null
+      ? h("span", { class: "pill", title: "Sin story points: no hay presupuesto que medir" }, dur(t.age))
+    : t.waiting !== null
+      ? h("span", { class: "pill", title: "Sin arrancar: el reloj corre recién desde In Progress" },
+          `espera ${dur(t.waiting)}`)
+      : null;
 
   return h("article", {
     class: `board__card${t.severity === "late" ? " is-late" : ""}`,
     tabindex: "0",
     title: `${t.key} · ${t.summary}\n${t.assignee} · ${t.points} pts · ${t.status}` +
-      (t.ratio !== null ? `\nLleva ${dur(t.age)} de ${dur(t.budget)}` : "") +
+      (t.ratio !== null ? `\nLleva ${dur(t.age)} trabajándose, de ${dur(t.budget)}`
+        : t.waiting !== null ? `\nSin arrancar: espera hace ${dur(t.waiting)}` : "") +
       (pendientes.length ? `\nBloqueado por: ${pendientes.join(", ")}` : ""),
   }, [
     h("div", { class: "board__card-top" }, [

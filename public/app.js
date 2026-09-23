@@ -65,7 +65,7 @@ const SEV = {
   ok: { label: "en hora", varName: "--good", cls: "pill--good" },
   blocked: { label: "bloqueado", varName: "--muted", cls: "" },
   done: { label: "cerrado", varName: "--o4", cls: "" },
-  none: { label: "—", varName: "--muted", cls: "" },
+  none: { label: "sin arrancar", varName: "--muted", cls: "" },
 };
 
 /** Horas hábiles → "3,9 h" / "2 d 4 h". Espeja lib/sla.js formatHours. */
@@ -336,9 +336,10 @@ function avgTicketSize(m) {
 function alertList(m) {
   if (!m.alerts.length) {
     const conReloj = m.table.filter((t) => t.age !== null).length;
+    const sinArrancar = m.table.filter((t) => t.age === null && t.bucket === "todo").length;
     return h("p", { class: "card__note" },
       `Ningún ticket pasado de tiempo. Hay ${conReloj} con el reloj corriendo; ` +
-      `los otros ${m.table.length - conReloj} están bloqueados por una dependencia, así que no se les cuenta la espera.`);
+      `los otros ${sinArrancar} siguen en To Do y todavía no arrancaron, así que no se les cuenta nada.`);
   }
   return h("div", { class: "alerts" }, m.alerts.slice(0, 14).map((a) => {
     const sev = SEV[a.severity];
@@ -605,7 +606,7 @@ function tableView(m) {
     { t: "Pts", num: true, get: (r) => fmt(r.points) },
     { t: "Estado", num: false, get: (r) => h("span", { class: "state-chip" }, [
         h("span", { class: "state-chip__dot", style: `background:var(${flowColor(r.status)})` }), r.status]) },
-    { t: "En estado", num: true, get: (r) => dur(r.age) },
+    { t: "Lleva", num: true, get: (r) => dur(r.age ?? r.waiting) },
     { t: "Presupuesto", num: true, get: (r) => dur(r.budget) },
     { t: "Consumo", num: false, get: (r) => r.ratio === null
         ? h("span", { class: "roster__meta" }, SEV[r.severity].label)
@@ -616,7 +617,9 @@ function tableView(m) {
     { t: "Épica", num: false, cls: "truncate", get: (r) => r.epic || "—" },
     { t: "Revisa", num: false, get: (r) => r.reviewer || "—" },
   ];
-  const rank = { late: 0, warn: 1, ok: 2, blocked: 3, done: 4, none: 5 };
+  // Lo accionable primero. "none" son los que todavía no arrancaron: no urgen,
+  // pero siguen siendo trabajo pendiente, así que van antes que los cerrados.
+  const rank = { late: 0, warn: 1, ok: 2, blocked: 3, none: 4, done: 5 };
   const rows = [...m.table].sort((a, b) =>
     rank[a.severity] - rank[b.severity] || (b.ratio ?? -1) - (a.ratio ?? -1) || b.unlocks - a.unlocks);
 
@@ -649,33 +652,33 @@ function render(m) {
 
     band("02 · tablero", "El sprint por estado", [
       card("Tablero",
-        `Una columna por estado del flujo. El círculo verde marca los tickets sin bloqueantes, y la píldora dice cuánto llevan parados contra su presupuesto. El filtro es el mismo que el del árbol.`,
+        `Una columna por estado del flujo. El círculo verde marca los tickets sin bloqueantes. La píldora con color mide el trabajo desde In Progress contra su presupuesto; en To Do es gris y sólo dice hace cuánto espera. El filtro es el mismo que el del árbol.`,
         kanbanBoard(m, treeState, rerender), "col-12"),
     ]),
 
     band("03 · reloj", "¿Algo lleva demasiado tiempo parado?", [
       card("Pasados de tiempo",
-        `Cada ticket tiene un presupuesto de horas según sus puntos. Si lo excede en el estado donde está, aparece acá. ` +
-        `A los bloqueados no se les cuenta la espera: la demora no es del equipo.`,
+        `Cada ticket tiene un presupuesto de horas según sus puntos, y el reloj arranca cuando entra a <b>In Progress</b>. Si lo excede, aparece acá. ` +
+        `Un ticket en To Do no tiene reloj: nadie lo agarró todavía, así que no puede estar vencido.`,
         alertList(m), "col-7"),
-      card("Dónde está cada ticket", "Estados del flujo, en orden, con hace cuánto está parado el ticket mediano de cada uno.",
+      card("Dónde está cada ticket", "Estados del flujo, en orden. La mediana es de trabajo desde In Progress; en To Do, de espera en la cola.",
         flowBreakdown(m), "col-5"),
       card("El presupuesto",
-        `Horas hábiles (jornada de ${m.sla.workday.from}:00 a ${m.sla.workday.to}:00). Revisar vale la mitad que construir; esperar en To Do tolera el triple. Se cambia en <code>lib/sla.js</code>.`,
+        `Horas hábiles (jornada de ${m.sla.workday.from}:00 a ${m.sla.workday.to}:00), contadas desde que el ticket entra a In Progress. El reloj no se reinicia al pasar a In Review: por eso ahí el presupuesto suma medio más, para revisar. To Do no figura porque no tiene reloj. Se cambia en <code>lib/sla.js</code>.`,
         budgetTable(m), "col-5"),
       card("Aviso y vencimiento",
         `Se avisa al <b>${Math.round(m.sla.thresholds.warn * 100)}%</b> del presupuesto y se marca vencido al pasar el <b>${Math.round(m.sla.thresholds.late * 100)}%</b>. ` +
-        `El reloj de un ticket en To Do arranca cuando se cierra su último bloqueante, no cuando se creó.`,
+        `El reloj arranca cuando el ticket entra a In Progress y corre hasta que se cierra — nunca antes.`,
         h("div", { class: "flow-grid" }, [
           h("div", { class: "flow-cell" }, [
             h("div", { class: "flow-cell__head" }, "Con reloj corriendo"),
             h("div", { class: "flow-cell__value num" }, String(m.table.filter((t) => t.age !== null).length)),
-            h("div", { class: "flow-cell__meta" }, "se les mide la espera"),
+            h("div", { class: "flow-cell__meta" }, "arrancados y sin cerrar"),
           ]),
           h("div", { class: "flow-cell" }, [
-            h("div", { class: "flow-cell__head" }, "Esperando dependencias"),
-            h("div", { class: "flow-cell__value num" }, String(m.table.filter((t) => t.severity === "blocked").length)),
-            h("div", { class: "flow-cell__meta" }, "sin reloj"),
+            h("div", { class: "flow-cell__head" }, "Todavía en To Do"),
+            h("div", { class: "flow-cell__value num" }, String(m.table.filter((t) => t.age === null && t.bucket === "todo").length)),
+            h("div", { class: "flow-cell__meta" }, "sin reloj hasta que arranquen"),
           ]),
         ]), "col-7"),
     ]),
