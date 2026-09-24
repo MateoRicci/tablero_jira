@@ -1,5 +1,6 @@
 // Tablero kanban: una columna por estado del flujo, como el de Jira.
 // Es de lectura — mover un ticket se hace en Jira y acá se ve al refrescar.
+import { dur, momento } from "./fmt.js";
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
@@ -16,17 +17,6 @@ function h(tag, attrs = {}, kids = []) {
   }
   return n;
 }
-
-const dur = (hrs) => {
-  if (hrs === null || hrs === undefined) return "—";
-  if (hrs < 1) return `${Math.round(hrs * 60)} min`;
-  if (hrs < 12) {
-    const v = Math.round(hrs * 10) / 10;
-    return `${Number.isInteger(v) ? v : String(v).replace(".", ",")} h`;
-  }
-  const d = Math.floor(hrs / 12), r = Math.round(hrs - d * 12);
-  return r ? `${d} d ${r} h` : `${d} d`;
-};
 
 const SEV_CLASS = { late: "pill--crit", warn: "pill--warn", ok: "pill--good" };
 
@@ -107,7 +97,7 @@ function card(t, byKey) {
     class: `board__card${t.severity === "late" ? " is-late" : ""}`,
     tabindex: "0",
     title: `${t.key} · ${t.summary}\n${t.assignee} · ${t.points} pts · ${t.status}` +
-      (t.ratio !== null ? `\nLleva ${dur(t.age)} trabajándose, de ${dur(t.budget)}`
+      (t.age !== null ? `\nLleva ${dur(t.age)}${t.budget ? ` de ${dur(t.budget)}` : ""}, arrancó ${momento(t.startedAt)}`
         : t.waiting !== null ? `\nSin arrancar: espera hace ${dur(t.waiting)}` : "") +
       (pendientes.length ? `\nBloqueado por: ${pendientes.join(", ")}` : ""),
   }, [

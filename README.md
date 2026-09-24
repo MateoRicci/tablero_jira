@@ -60,15 +60,21 @@ cualquiera de los dos filtra el otro.
 ### El reloj (`lib/sla.js`)
 
 El flujo del proyecto es **To Do → In Progress → In Review → Done**. Cada
-ticket tiene un presupuesto de horas hábiles según sus story points:
+ticket tiene un presupuesto de **horas de reloj** según sus story points:
 
 | Puntos | Presupuesto base |
 |---|---|
-| 1 | 2 h |
-| 2 | medio día (4 h) |
-| 3 | un día (8 h) |
-| 5 | un par de días (16 h) |
-| 8 | una semana (40 h) |
+| 1 | un tercio de día (8 h) |
+| 2 | dos tercios de día (16 h) |
+| 3 | un día (24 h) |
+| 5 | un par de días (48 h) |
+| 8 | una semana (168 h) |
+
+Son horas corridas, no de trabajo efectivo: cuentan noches y fines de semana.
+Al principio el reloj sólo corría de 9:00 a 21:00, y eso lo congelaba justo
+cuando el equipo programa — un ticket movido a In Progress a las 22:00 se
+quedaba marcando "0 min" hasta la mañana siguiente. Ahora `WORKDAY` es el día
+entero y el presupuesto absorbe la diferencia.
 
 **El reloj arranca en In Progress.** Mientras el ticket está en To Do no se
 mide nada contra presupuesto: nadie lo agarró todavía, así que no puede estar
@@ -95,9 +101,11 @@ Dos reglas que evitan las falsas alarmas:
 2. **Se avisa al 80 %** del presupuesto (*por vencer*) y **se marca vencido al
    pasar el 100 %**.
 
-Las horas son hábiles, con jornada de 9:00 a 21:00 todos los días (`WORKDAY`).
-Todo eso —presupuestos, factores, umbrales y jornada— se cambia en un solo
-lugar: el encabezado de `lib/sla.js`.
+`WORKDAY` define la franja en la que corre el reloj; por defecto es
+`{ from: 0, to: 24 }`, o sea tiempo corrido. Si alguna vez volvés a horas de
+oficina, bajá `BUDGET_HOURS` en la misma proporción: son las dos mitades del
+mismo número. Todo —presupuestos, factores, umbrales y franja— se cambia en un
+solo lugar: el encabezado de `lib/sla.js`.
 
 ## En el celular
 
@@ -244,7 +252,7 @@ lib/jira.js      cliente REST, paginado, caché
 lib/cache.js     almacén del snapshot: archivo en local, memoria en serverless
 lib/auth.js      portón por contraseña con cookie firmada
 lib/metrics.js   grafo de dependencias, burndown, agregados por persona
-lib/sla.js       presupuestos de tiempo por complejidad y horas hábiles
+lib/sla.js       presupuestos de tiempo por complejidad y reloj del SLA
 public/
   app.js         composición del tablero
   tree.js        árbol de dependencias interactivo

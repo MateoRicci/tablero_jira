@@ -7,6 +7,7 @@
 // cada uno — con seis personas ninguna paleta categórica pasa los pisos.
 
 import { svg, el, text, bindTip, cssVar } from "./charts.js";
+import { dur as fmtDur, momento } from "./fmt.js";
 
 // En pantalla chica el grafo se compacta: con nodos de 108px entraban tres
 // por pantalla y el árbol dejaba de leerse como árbol.
@@ -16,13 +17,6 @@ const NODE_H = MOVIL ? 24 : 28;
 const COL = MOVIL ? 104 : 158;
 const ROW = MOVIL ? 30 : 38;
 const PAD = MOVIL ? 14 : 26;
-const fmtDur = (hrs) => {
-  if (hrs === null || hrs === undefined) return "—";
-  if (hrs < 1) return `${Math.round(hrs * 60)} min`;
-  if (hrs < 12) { const v = Math.round(hrs * 10) / 10; return `${Number.isInteger(v) ? v : v.toString().replace(".", ",")} h`; }
-  const d = Math.floor(hrs / 12), r = Math.round(hrs - d * 12);
-  return r ? `${d} d ${r} h` : `${d} d`;
-};
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 /** Ordena cada nivel por baricentro para que se crucen menos aristas. */
@@ -160,7 +154,7 @@ export function dependencyTree(metrics, state, onFilterChange) {
     const reloj =
       n.severity === "blocked" ? "Sin reloj: espera una dependencia"
       : n.ratio !== null
-        ? `Lleva <b>${fmtDur(n.age)}</b> trabajándose de <b>${fmtDur(n.budget)}</b> (${Math.round(n.ratio * 100)}%)`
+        ? `Lleva <b>${fmtDur(n.age)}</b> de <b>${fmtDur(n.budget)}</b> (${Math.round(n.ratio * 100)}%), arrancó ${esc(momento(n.startedAt))}`
       : n.age !== null ? `Lleva <b>${fmtDur(n.age)}</b> trabajándose (sin estimar)`
       : n.waiting !== null ? `Sin arrancar: espera hace <b>${fmtDur(n.waiting)}</b>`
       : "";

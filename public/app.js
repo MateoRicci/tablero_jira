@@ -1,6 +1,7 @@
 import { svg, el, text, capsule, scale, niceTicks, bindTip, legend, cssVar, readableOn, GAP, BAR_MAX } from "./charts.js";
 import { dependencyTree } from "./tree.js";
 import { kanbanBoard } from "./board.js";
+import { dur, setHoursPerDay, momento } from "./fmt.js";
 
 const app = document.getElementById("app");
 const clock = document.getElementById("clock");
@@ -67,17 +68,6 @@ const SEV = {
   done: { label: "cerrado", varName: "--o4", cls: "" },
   none: { label: "sin arrancar", varName: "--muted", cls: "" },
 };
-
-/** Horas hábiles → "3,9 h" / "2 d 4 h". Espeja lib/sla.js formatHours. */
-function dur(h) {
-  if (h === null || h === undefined) return "—";
-  const perDay = 12;
-  if (h < 1) return `${Math.round(h * 60)} min`;
-  if (h < perDay) return `${fmt(h, Number.isInteger(h) ? 0 : 1)} h`;
-  const d = Math.floor(h / perDay);
-  const r = Math.round(h - d * perDay);
-  return r ? `${d} d ${r} h` : `${d} d`;
-}
 
 // ── Helpers de DOM ────────────────────────────────────────────────────────
 function h(tag, attrs = {}, kids = []) {
@@ -352,7 +342,7 @@ function alertList(m) {
       ]),
       h("div", {
         class: "alert__bar",
-        title: `${dur(a.elapsed)} de ${dur(a.budget)}`,
+        title: `${dur(a.elapsed)} de ${dur(a.budget)}` + (a.startedAt ? `, desde que arrancó ${momento(a.startedAt)}` : ""),
       }, [h("div", {
         class: "alert__fill",
         style: `width:${Math.round(over * 100)}%;background:var(${sev.varName})`,
@@ -635,6 +625,7 @@ function tableView(m) {
 
 // ── Composición ───────────────────────────────────────────────────────────
 function render(m) {
+  setHoursPerDay(m.sla.hoursPerDay);
   setFlow(m.flowOrder);
   const s = m.meta.sprint;
   const idle = m.people.filter((p) => p.startable === 0).length;
@@ -664,7 +655,7 @@ function render(m) {
       card("Dónde está cada ticket", "Estados del flujo, en orden. La mediana es de trabajo desde In Progress; en To Do, de espera en la cola.",
         flowBreakdown(m), "col-5"),
       card("El presupuesto",
-        `Horas hábiles (jornada de ${m.sla.workday.from}:00 a ${m.sla.workday.to}:00), contadas desde que el ticket entra a In Progress. El reloj no se reinicia al pasar a In Review: por eso ahí el presupuesto suma medio más, para revisar. To Do no figura porque no tiene reloj. Se cambia en <code>lib/sla.js</code>.`,
+        `Horas de reloj corridas —noches y fines de semana incluidos— desde que el ticket entra a In Progress. El reloj no se reinicia al pasar a In Review: por eso ahí el presupuesto suma medio más, para revisar. To Do no figura porque no tiene reloj. Se cambia en <code>lib/sla.js</code>.`,
         budgetTable(m), "col-5"),
       card("Aviso y vencimiento",
         `Se avisa al <b>${Math.round(m.sla.thresholds.warn * 100)}%</b> del presupuesto y se marca vencido al pasar el <b>${Math.round(m.sla.thresholds.late * 100)}%</b>. ` +
